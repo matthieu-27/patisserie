@@ -2,7 +2,6 @@
 <project version="4">
   <component name="MypySettings">
     <option name="arguments" value="--follow-imports silent --exclude \.pyi$" />
-    <option name="mypyExecutable" value="C:\Users\Matt\AppData\Local\Programs\Python\Python310\Scripts\mypy.exe" />
     <option name="projectDirectory" value="$PROJECT_DIR$" />
   </component>
 </project>
