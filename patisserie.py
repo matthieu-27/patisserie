@@ -1,82 +1,68 @@
 import threading
 import time
 import math
-import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional
+
 
 class Commis(ABC):
-    name: str
     def __init__(self, name):
         self.name = name
 
     @abstractmethod
     def run(self):
-        ...
+        pass
 
-class ThreadHandler(ABC):
-    @abstractmethod
-    def startup(self) -> None:
-        raise NotImplementedError()
 
-    @abstractmethod
-    def shutdown(self) -> None:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def handle(self) -> None:
-        raise NotImplementedError()
-
-@dataclass
 class Ingredient(ABC):
-    name: str
-    quantity: int
-    unit: str
-
-    def __init__(self, _name: str, _quantity: int, _unit: str):
-        self.name = _name
-        self.quantity = _quantity
-        self.unit = _unit
-
-@dataclass
-class Appareil(ABC):
-    name: str
-    ingredients: list[Ingredient]
-    result: str
-
-    def __init__(self, _name: str, _ingredients: list[Ingredient], _result: str):
-        self.name = _name
-        self.ingredients = _ingredients
-        self.result = _result
-
-@dataclass
-class Recipient:
-    name: str
-    item: Optional[Ingredient | Appareil] = None
-
-    def __post_init__(self) -> None:
-        if self.item is None:
-            self.item = None
-
-class Egg(Ingredient):
-    def __init__(self, name: str, quantity: int, unit: str):
-        super().__init__(name, quantity, unit)
-
-    def process(self):
-        ...
-
-class Chocolate(Ingredient):
-    def __init__(self, name: str, quantity: int, unit: str):
-        super().__init__(name, quantity, unit)
-
-    def process(self):
-        ...
-
-class FondeurChocolat(threading.Thread):
-    def __init__(self, name: str, quantite: int):
-        super().__init__()
+    def __init__(self, name, quantity, unit):
         self.name = name
+        self.quantity = quantity
+        self.unit = unit
+
+
+class Oeuf(Ingredient):
+    def __init__(self, quantity):
+        super().__init__("Oeuf", quantity, "unité")
+
+
+class Chocolat(Ingredient):
+    def __init__(self, quantity):
+        super().__init__("Chocolat", quantity, "grammes")
+
+
+@dataclass
+class Appareil:
+    name: str
+
+    def __init__(self, name):
+        self.name = name
+        self.ingredients = []
+
+    def __str__(self):
+        print(f"Je lance la préparation de {self.name}")
+
+    def ajouter_ingredient(self, ingredient):
+        self.ingredients.append(ingredient)
+
+
+class BatteurOeufs(Commis, threading.Thread):
+    def __init__(self, name, nb_oeufs):
+        threading.Thread.__init__(self)
+        Commis.__init__(self, name)
+        self.nb_oeufs = nb_oeufs
+
+    def run(self):
+        nb_tours = self.nb_oeufs * 8
+        for no_tour in range(1, nb_tours + 1):
+            print(f"{self.name}: Je bats les {self.nb_oeufs} oeufs, tour n°{no_tour}")
+            time.sleep(0.5)
+
+
+class FondeurChocolat(Commis, threading.Thread):
+    def __init__(self, name, quantite):
+        threading.Thread.__init__(self)
+        Commis.__init__(self, name)
         self.quantite = quantite
 
     def run(self):
@@ -91,47 +77,18 @@ class FondeurChocolat(threading.Thread):
             print(f"{self.name}: Je mélange {self.quantite} de chocolat à fondre, tour n°{no_tour}")
             time.sleep(1)
 
-class CookingThread(threading.Thread):
-    def __init__(self, handler: ThreadHandler):
-        threading.Thread.__init__(self)
-        self._handler = handler
-        self._stop_event = threading.Event()
-
-    def stop(self) -> None:
-        self._stop_event.set()
-
-    def _stopped(self) -> bool:
-        return self._stop_event.is_set()
-
-    def run(self) -> None:
-        self._handler.startup()
-        while not self._stopped():
-            self._handler.handle()
-        self._handler.shutdown()
-
-@dataclass
-class BatteurOeufs(ThreadHandler):
-    name: str
-    _eggs: int
-
-    def __init__(self, name: str, eggs: int):
-        self.name = name
-        self._eggs = eggs
-
-    def startup(self) -> None:
-        logging.info("BatteurOeufs started")
-
-    def shutdown(self) -> None:
-        logging.info("BatteurOeufs stopped")
-
-    def handle(self) -> None:
-        nb_tours = self._eggs * 8
-        for no_tour in range(1, nb_tours + 1):
-            print(f"{self.name}: Je bats les {self._eggs} oeufs, tour n°{no_tour}")
-            time.sleep(0.5)
 
 if __name__ == "__main__":
+    # Exemple d'utilisation de la classe Appareil
+    appareil = Appareil("Pâte à gâteau")
+    appareil.__str__()
+    appareil.ajouter_ingredient(Oeuf(5))
+    appareil.ajouter_ingredient(Chocolat(200))
+
     batteur = BatteurOeufs("Batteur", 5)
-    commis_thread = CookingThread(batteur)
-    commis_thread.start()
-    commis_thread.join()
+    fondeur = FondeurChocolat("Fondeur", 200)
+    batteur.start()
+    fondeur.start()
+    batteur.join()
+    fondeur.join()
+    print("Toutes les tâches sont terminées.")
